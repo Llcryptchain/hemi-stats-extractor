@@ -2,23 +2,23 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const readline = require('readline');
 
-// Création de l'interface readline
+// Create readline interface
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
 
-// Fonction pour formater les nombres
+// Function to format numbers
 function formatNumber(num, isFeesAmount = false, isLastTxFee = false) {
   if (!num || num === '') return '0';
   
-  // Nettoyer le nombre
+  // Clean the number
   num = num.replace(/[^\d.]/g, '');
   
   if (num.includes('.')) {
     const [whole, decimal] = num.split('.');
     if (isFeesAmount) {
-      // 5 décimales pour le dernier fee, 2 pour les autres
+      // 5 decimals for last fee, 2 for others
       const decimals = isLastTxFee ? 5 : 2;
       const roundedDecimal = parseFloat(`0.${decimal}`).toFixed(decimals).split('.')[1];
       return `${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}.${roundedDecimal}`;
@@ -40,7 +40,7 @@ async function extractPubkeyData(pubkey) {
   });
 
   try {
-    console.log('\nRécupération des données pour la pubkey:', pubkey);
+    console.log('\nFetching data for pubkey:', pubkey);
     const response = await axiosInstance.get(url);
     const $ = cheerio.load(response.data);
     
@@ -71,13 +71,13 @@ async function extractPubkeyData(pubkey) {
       timestamp: lastTxStats.find('tr:eq(1) td:eq(4)').text().trim()
     };
 
-    // Affichage formaté
-    console.log('\n**Statistiques All-Times**');
+    // Formatted display
+    console.log('\n**All-Time Statistics**');
     console.log(`* Total PoP Txs: ${formatNumber(allTimeData.totalTxs)}`);
     console.log(`* Total Keystones Mined: ${formatNumber(allTimeData.totalKeystones)}`);
     console.log(`* Total PoP Fees: ${formatNumber(allTimeData.totalFees, true)} BTC`);
     
-    console.log('\n**Statistiques H24**');
+    console.log('\n**24-Hour Statistics**');
     console.log(`* PoP Txs: ${formatNumber(h24Data.popTxs)}`);
     console.log(`* Unique Keystones Mined: ${formatNumber(h24Data.uniqueKeystones)}`);
     console.log(`* PoP Fees: ${formatNumber(h24Data.popFees, true)} BTC`);
@@ -91,32 +91,32 @@ async function extractPubkeyData(pubkey) {
     console.log(`* Timestamp: ${lastTxData.timestamp}`);
 
   } catch (error) {
-    console.error('\nErreur lors de la récupération:', {
+    console.error('\nError fetching data:', {
       message: error.message,
       status: error.response?.status,
       statusText: error.response?.statusText
     });
   }
 
-  // Demander si l'utilisateur veut chercher une autre pubkey
+  // Ask if the user wants to lookup another pubkey
   askForAnotherPubkey();
 }
 
 function askForAnotherPubkey() {
-  rl.question('\nVoulez-vous consulter une autre pubkey? (O/N): ', (answer) => {
-    if (answer.toLowerCase() === 'o' || answer.toLowerCase() === 'oui') {
+  rl.question('\nWould you like to lookup another pubkey? (Y/N): ', (answer) => {
+    if (answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes') {
       askForPubkey();
     } else {
-      console.log('Au revoir!');
+      console.log('Goodbye!');
       rl.close();
     }
   });
 }
 
 function askForPubkey() {
-  rl.question('Entrez la pubkey à consulter: ', (pubkey) => {
+  rl.question('Enter the pubkey to lookup: ', (pubkey) => {
     if (pubkey.trim() === '') {
-      console.log('La pubkey ne peut pas être vide.');
+      console.log('Pubkey cannot be empty.');
       askForPubkey();
     } else {
       extractPubkeyData(pubkey);
@@ -124,6 +124,6 @@ function askForPubkey() {
   });
 }
 
-// Message d'accueil et démarrage
-console.log('Bienvenue dans le script de consultation des statistiques Hemi Network!\n');
+// Welcome message and startup
+console.log('Welcome to Hemi Network Statistics Extractor!\n');
 askForPubkey();
