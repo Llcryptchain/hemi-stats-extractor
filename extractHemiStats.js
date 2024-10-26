@@ -11,14 +11,10 @@ const rl = readline.createInterface({
 // Function to format numbers
 function formatNumber(num, isFeesAmount = false, isLastTxFee = false) {
   if (!num || num === '') return '0';
-  
-  // Clean the number
   num = num.replace(/[^\d.]/g, '');
-  
   if (num.includes('.')) {
     const [whole, decimal] = num.split('.');
     if (isFeesAmount) {
-      // 5 decimals for last fee, 2 for others
       const decimals = isLastTxFee ? 5 : 2;
       const roundedDecimal = parseFloat(`0.${decimal}`).toFixed(decimals).split('.')[1];
       return `${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}.${roundedDecimal}`;
@@ -28,19 +24,48 @@ function formatNumber(num, isFeesAmount = false, isLastTxFee = false) {
   return num.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
-async function extractPubkeyData(pubkey) {
-  const url = `https://testnet.popstats.hemi.network/pubkey/${pubkey}.html`;
-  
-  const axiosInstance = axios.create({
-    timeout: 10000,
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
-    }
-  });
-
+async function getPubkeyFromBtcAddress(btcAddress) {
   try {
-    console.log('\nFetching data for pubkey:', pubkey);
+    const response = await axios.get(
+      `https://testnet.popstats.hemi.network/pubkey/${btcAddress.toUpperCase()}.html`
+    );
+
+    const $ = cheerio.load(response.data);
+    const metaRefresh = $('meta[http-equiv="refresh"]').attr('content');
+
+    if (metaRefresh) {
+      const match = metaRefresh.match(/pubkey\/([A-F0-9]+)\.html/i);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+    throw new Error('Pubkey not found in meta refresh');
+  } catch (error) {
+    console.error('Error converting BTC address:', error.message);
+    return null;
+  }
+}
+
+async function extractData(btcAddress) {
+  try {
+    console.log('\nConverting BTC address to pubkey...');
+    const pubkey = await getPubkeyFromBtcAddress(btcAddress);
+    if (!pubkey) {
+      throw new Error('Failed to convert BTC address to pubkey');
+    }
+    console.log('Found pubkey:', pubkey);
+
+    const url = `https://testnet.popstats.hemi.network/pubkey/${pubkey}.html`;
+    console.log('Fetching data...\n');
+
+    const axiosInstance = axios.create({
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+      }
+    });
+
     const response = await axiosInstance.get(url);
     const $ = cheerio.load(response.data);
     
@@ -72,7 +97,7 @@ async function extractPubkeyData(pubkey) {
     };
 
     // Formatted display
-    console.log('\n**All-Time Statistics**');
+    console.log('**All-Time Statistics**');
     console.log(`* Total PoP Txs: ${formatNumber(allTimeData.totalTxs)}`);
     console.log(`* Total Keystones Mined: ${formatNumber(allTimeData.totalKeystones)}`);
     console.log(`* Total PoP Fees: ${formatNumber(allTimeData.totalFees, true)} BTC`);
@@ -91,21 +116,16 @@ async function extractPubkeyData(pubkey) {
     console.log(`* Timestamp: ${lastTxData.timestamp}`);
 
   } catch (error) {
-    console.error('\nError fetching data:', {
-      message: error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText
-    });
+    console.error('\nError:', error.message);
   }
 
-  // Ask if the user wants to lookup another pubkey
-  askForAnotherPubkey();
+  askForAnother();
 }
 
-function askForAnotherPubkey() {
-  rl.question('\nWould you like to lookup another pubkey? (Y/N): ', (answer) => {
+function askForAnother() {
+  rl.question('\nWould you like to lookup another BTC address? (Y/N): ', (answer) => {
     if (answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes') {
-      askForPubkey();
+      askForInput();
     } else {
       console.log('Goodbye!');
       rl.close();
@@ -113,17 +133,18 @@ function askForAnotherPubkey() {
   });
 }
 
-function askForPubkey() {
-  rl.question('Enter the pubkey to lookup: ', (pubkey) => {
-    if (pubkey.trim() === '') {
-      console.log('Pubkey cannot be empty.');
-      askForPubkey();
+function askForInput() {
+  rl.question('Enter a Bitcoin address to lookup: ', (input) => {
+    if (input.trim() === '') {
+      console.log('Bitcoin address cannot be empty.');
+      askForInput();
     } else {
-      extractPubkeyData(pubkey);
+      extractData(input);
     }
   });
 }
 
 // Welcome message and startup
-console.log('Welcome to Hemi Network Statistics Extractor!\n');
-askForPubkey();
+console.log('Welcome to Hemi Network Statistics Extractor!');
+console.log('Enter a Bitcoin address to get PoP mining statistics.\n');
+askForInput();
