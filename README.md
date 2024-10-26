@@ -1,8 +1,8 @@
 # hemi-stats-extractor
-A command-line tool to extract and display PoP miners statistics from Hemi Network (testnet) for a given PUBKEY.
+A command-line tool to extract and display PoP miners statistics from Hemi Network (testnet) for a given Bitcoin (P2PKH) Address.
 
 📋 **Description**
-This script extracts and displays three types of statistics for a given pubkey:
+This script extracts and displays three types of statistics for a given Bitcoin Address:
 - All-Time Statistics (total transactions, keystones, and fees)
 - 24-Hour Statistics
 - Last PoP Transaction Details
@@ -23,7 +23,7 @@ pm install
 1. Run the script:
 node extractHemiStats.js
 
-2. Enter the pubkey when prompted
+2. Enter the Bitcoin Address when prompted
 
 3. Statistics will be displayed in this format:
 
@@ -50,8 +50,8 @@ node extractHemiStats.js
 - axios (for HTTP requests)
 - cheerio (for HTML parsing)
 
-📌 Sample Pubkey for Testing
-03FC230B70F5FED74E35779D98E4739EF423BA9B2FD5AF5F670A9782997823BA51
+📌 Sample Bitcoin Address for Testing
+mhTpVABN9CpzheKdMBmNVPE7hFNgCmmbcg
 
 📄 License
 This project is licensed under the MIT License - see the LICENSE file for details.
